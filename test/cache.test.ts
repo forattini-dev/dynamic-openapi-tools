@@ -101,6 +101,11 @@ describe('FileTokenCache', () => {
     await cache.purge()
     await expect(stat(file)).rejects.toThrow()
   })
+
+  it('purge is a no-op when the file is already missing', async () => {
+    // no writes — nothing to unlink
+    await expect(cache.purge()).resolves.toBeUndefined()
+  })
 })
 
 describe('defaultCacheFilePath', () => {

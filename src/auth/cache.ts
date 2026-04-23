@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, chmod, unlink } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
@@ -89,11 +89,6 @@ export class FileTokenCache implements TokenCache {
   private async persist(data: FileCacheShape): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true })
     await writeFile(this.filePath, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 })
-    try {
-      await chmod(this.filePath, 0o600)
-    } catch {
-      // chmod can fail on non-POSIX filesystems; ignore
-    }
   }
 
   async purge(): Promise<void> {
