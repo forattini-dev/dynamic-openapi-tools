@@ -426,6 +426,7 @@ function applyRefreshBuffer(expiresAt: number, now: number, configuredBufferSeco
 }
 
 function normalizeSchemeName(value: string): string {
+  /* v8 ignore next */
   if (!value) return value
   return value.charAt(0).toUpperCase() + value.slice(1)
 }

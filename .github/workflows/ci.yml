@@ -43,6 +43,9 @@ jobs:
       - name: Run Tests
         run: pnpm run test:run
 
+      - name: Enforce 100% Coverage
+        run: pnpm run test:coverage
+
   release-next:
     name: Release Next
     needs: quality

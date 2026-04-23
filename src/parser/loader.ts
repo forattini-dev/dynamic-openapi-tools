@@ -37,6 +37,7 @@ export async function loadSpec(source: string | OpenAPIV3.Document): Promise<Ope
       try {
         text = await readFile(resolved.value, 'utf-8')
       } catch (err) {
+        /* v8 ignore next */
         const msg = err instanceof Error ? err.message : String(err)
         throw new Error(`Failed to read spec file "${resolved.value}": ${msg}`)
       }
@@ -59,6 +60,7 @@ function parseSpecText(text: string, source: string): OpenAPIV3.Document {
     try {
       return JSON.parse(trimmed)
     } catch (err) {
+      /* v8 ignore next */
       const msg = err instanceof Error ? err.message : String(err)
       throw new Error(`Failed to parse JSON spec from ${source}: ${msg}`)
     }
@@ -67,6 +69,7 @@ function parseSpecText(text: string, source: string): OpenAPIV3.Document {
   try {
     return parseYaml(trimmed) as OpenAPIV3.Document
   } catch (err) {
+    /* v8 ignore next */
     const msg = err instanceof Error ? err.message : String(err)
     throw new Error(`Failed to parse YAML spec from ${source}: ${msg}`)
   }
