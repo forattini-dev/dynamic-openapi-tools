@@ -106,6 +106,12 @@ describe('FileTokenCache', () => {
     // no writes — nothing to unlink
     await expect(cache.purge()).resolves.toBeUndefined()
   })
+
+  it('clear is a no-op when the key is absent', async () => {
+    await cache.write('present', { token: 'P', expiresAt: Date.now() + 10_000 })
+    await expect(cache.clear('missing')).resolves.toBeUndefined()
+    expect((await cache.read('present'))?.token).toBe('P')
+  })
 })
 
 describe('defaultCacheFilePath', () => {
