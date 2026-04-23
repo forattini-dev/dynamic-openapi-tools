@@ -4,6 +4,7 @@ import * as parser from '../src/parser/index.js'
 import * as auth from '../src/auth/index.js'
 import * as bundle from '../src/bundle/index.js'
 import * as utils from '../src/utils/index.js'
+import * as cli from '../src/cli/index.js'
 
 describe('public exports', () => {
   it('re-exports parser symbols', () => {
@@ -33,6 +34,12 @@ describe('public exports', () => {
     expect(typeof utils.fetchWithRetry).toBe('function')
     expect(typeof utils.sanitizeToolName).toBe('function')
     expect(typeof utils.truncateDescription).toBe('function')
+  })
+
+  it('re-exports cli-args-parser through the /cli subpath', () => {
+    expect(typeof cli.parse).toBe('function')
+    expect(typeof cli.createParser).toBe('function')
+    expect(typeof cli.createCLI).toBe('function')
   })
 
   it('root index re-exports everything', () => {

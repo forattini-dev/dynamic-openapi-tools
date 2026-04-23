@@ -7,6 +7,7 @@ export default defineConfig({
     'auth/index': 'src/auth/index.ts',
     'bundle/index': 'src/bundle/index.ts',
     'utils/index': 'src/utils/index.ts',
+    'cli/index': 'src/cli/index.ts',
   },
   format: ['esm'],
   dts: true,
