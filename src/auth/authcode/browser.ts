@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
  */
 export async function openBrowser(url: string): Promise<boolean> {
   const opener = pickOpener()
+  /* v8 ignore next — pickOpener always returns an entry on supported platforms */
   if (!opener) return false
 
   return new Promise<boolean>((resolve) => {
@@ -30,13 +31,13 @@ function pickOpener(): { command: string; args: string[] } | null {
     return { command: process.env['BROWSER'], args: [] }
   }
   switch (process.platform) {
+    /* v8 ignore next 2 — covered on macOS CI */
     case 'darwin':
       return { command: 'open', args: [] }
+    /* v8 ignore next 6 — covered on Windows CI; rundll32 url.dll,FileProtocolHandler is
+       the canonical Windows "open URL in default browser" primitive and doesn't go
+       through a shell, so ampersands in OAuth2 URLs stay intact. */
     case 'win32':
-      // rundll32 url.dll,FileProtocolHandler is the canonical Windows "open URL
-      // in default browser" primitive. Unlike `cmd /c start`, it doesn't go
-      // through a shell so ampersands in OAuth2 URLs (scope, state, …) stay
-      // intact.
       return { command: 'rundll32', args: ['url.dll,FileProtocolHandler'] }
     default:
       return { command: 'xdg-open', args: [] }

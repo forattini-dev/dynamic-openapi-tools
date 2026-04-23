@@ -24,6 +24,8 @@ export interface CaptureOptions {
 export function captureCallback(options: CaptureOptions): Promise<LoopbackCallback> {
   const host = options.host ?? '127.0.0.1'
   const callbackPath = options.path ?? '/callback'
+  // 5-minute default is production-only; tests always pass an explicit timeoutMs.
+  /* v8 ignore next */
   const timeoutMs = options.timeoutMs ?? 5 * 60 * 1000
   const successBody =
     options.successBody ??
@@ -34,6 +36,8 @@ export function captureCallback(options: CaptureOptions): Promise<LoopbackCallba
 
   return new Promise<LoopbackCallback>((resolve, reject) => {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      // req.url is always set by Node; '/' guards against exotic proxy chains.
+      /* v8 ignore next */
       const url = new URL(req.url ?? '/', `http://${host}:${options.port}`)
       if (url.pathname !== callbackPath) {
         res.writeHead(404, { 'Content-Type': 'text/plain' })

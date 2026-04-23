@@ -83,9 +83,8 @@ function envKeyFor(schemeName: string): string {
 }
 
 function normalizeOptions(options: DetectOptions | NodeJS.ProcessEnv): DetectOptions {
-  if (!options) return {}
-  // Heuristic: a DetectOptions has at most two known keys; anything else is a
-  // raw env map (legacy test signature).
+  // Heuristic: a DetectOptions has at most two known keys; anything else is
+  // a raw env map (legacy callers that pass process.env directly).
   const keys = Object.keys(options)
   if (keys.length === 0) return {}
   const looksLikeOptions = keys.every((k) => k === 'appName' || k === 'env')

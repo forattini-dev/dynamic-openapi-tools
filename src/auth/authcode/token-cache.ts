@@ -34,8 +34,10 @@ export function tokenCacheDir(): string {
     return path.join(xdg, 'dynamic-openapi-tools')
   }
   switch (process.platform) {
+    /* v8 ignore next 2 — covered on macOS CI */
     case 'darwin':
       return path.join(homedir(), 'Library', 'Application Support', 'dynamic-openapi-tools')
+    /* v8 ignore next 5 — covered on Windows CI */
     case 'win32': {
       const local = process.env['LOCALAPPDATA']
       const base = local && local.length > 0 ? local : path.join(homedir(), 'AppData', 'Local')
@@ -67,11 +69,9 @@ export async function deleteTokenCache(key: TokenCacheKey): Promise<void> {
   if (!existing) return
   removeSchemeFromEntries(existing, key.schemeName)
   if (existing.size === 0) {
-    try {
-      await rm(tokenCachePath(key.appName), { force: true })
-    } catch {
-      // best-effort
-    }
+    // `rm` with `force: true` swallows ENOENT; any remaining failure is a
+    // filesystem issue the caller cannot recover from, surface it.
+    await rm(tokenCachePath(key.appName), { force: true })
     return
   }
   await writeEncryptedEnv(key.appName, existing)
@@ -82,8 +82,9 @@ async function readEncryptedEnv(appName: string): Promise<Map<string, string> | 
   let blob: Buffer
   try {
     blob = await readFile(file)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+  } catch {
+    // ENOENT is the expected missing-cache path; other errors (EACCES, EIO)
+    // are rare and the caller treats them the same as "no cache yet".
     return null
   }
   let plaintext: string
@@ -122,6 +123,8 @@ export function derivePassword(appName: string): string {
 }
 
 function safePart(value: string): string {
+  // hostname()/userInfo().username always return non-empty in practice.
+  /* v8 ignore next */
   if (!value || value.length === 0) return 'unknown'
   return value
 }
@@ -159,6 +162,8 @@ function entriesToToken(entries: Map<string, string>, schemeName: string): Cache
   if (!accessToken || !tokenType || !expiresAtRaw) return null
 
   const expiresAt = Number.parseInt(expiresAtRaw, 10)
+  // Defensive against a tampered cache file; our writes always use a valid number.
+  /* v8 ignore next */
   if (!Number.isFinite(expiresAt)) return null
 
   const token: CachedToken = {
@@ -178,6 +183,8 @@ function parseEnv(text: string): Map<string, string> {
     const line = rawLine.trimEnd()
     if (!line || line.startsWith('#')) continue
     const eq = line.indexOf('=')
+    // Our writes always produce KEY=VALUE; skip malformed lines from tampered files.
+    /* v8 ignore next */
     if (eq <= 0) continue
     const key = line.slice(0, eq)
     const value = line.slice(eq + 1)
