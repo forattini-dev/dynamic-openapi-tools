@@ -1,6 +1,6 @@
 {
   "name": "dynamic-openapi-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared building blocks for the dynamic-openapi family (parser, auth, bundle renderer)",
   "type": "module",
   "main": "./dist/index.js",
