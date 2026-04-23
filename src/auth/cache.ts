@@ -112,11 +112,13 @@ export function defaultCacheFilePath(): string {
 }
 
 export function hashKey(components: Record<string, string | string[] | undefined>): string {
-  const stable = Object.entries(components)
-    .filter(([, v]) => v !== undefined)
-    .map(([k, v]) => [k, Array.isArray(v) ? [...v].sort() : v])
-    .sort(([a], [b]) => a.localeCompare(b))
-  return createHash('sha256').update(JSON.stringify(stable)).digest('hex').slice(0, 32)
+  const entries: Array<[string, string | string[]]> = []
+  for (const [k, v] of Object.entries(components)) {
+    if (v === undefined) continue
+    entries.push([k, Array.isArray(v) ? [...v].sort() : v])
+  }
+  entries.sort((a, b) => a[0].localeCompare(b[0]))
+  return createHash('sha256').update(JSON.stringify(entries)).digest('hex').slice(0, 32)
 }
 
 export type TokenCacheOption = TokenCache | 'memory' | 'file' | { type: 'file'; path?: string }
