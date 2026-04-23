@@ -39,6 +39,13 @@ export interface AuthConfig {
   }
   tokenExchange?: TokenExchangeAuthConfig
   custom?: (url: string, init: RequestInit) => RequestInit | Promise<RequestInit>
+  /**
+   * Where to persist access tokens retrieved by `oauth2` and `tokenExchange`.
+   * - `'memory'` (default): tokens live only while the process is up
+   * - `'file'`: tokens survive restarts via `$XDG_CACHE_HOME/dynamic-openapi-tools/tokens.json` (chmod 0600)
+   * - Custom object: pass a `TokenCache` instance (keychain adapter, in-redis, etc.)
+   */
+  cache?: import('./cache.js').TokenCacheOption
 }
 
 export interface ResolvedAuth {

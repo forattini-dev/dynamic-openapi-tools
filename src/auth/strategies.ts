@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { ResolvedAuth, TokenExchangeApplyConfig, TokenExchangeAuthConfig } from './types.js'
+import { MemoryTokenCache, hashKey, type TokenCache, type TokenCacheEntry } from './cache.js'
 import { fetchWithRetry } from '../utils/fetch.js'
 
 export class BearerAuth implements ResolvedAuth {
@@ -55,15 +56,25 @@ export class BasicAuth implements ResolvedAuth {
 }
 
 export class OAuth2ClientCredentials implements ResolvedAuth {
-  private tokenCache: { token: string; expiresAt: number } | null = null
+  private readonly cache: TokenCache
+  private readonly cacheKey: string
   private pendingRefresh: Promise<string> | null = null
 
   constructor(
     private clientId: string,
     private clientSecret: string,
     private tokenUrl: string,
-    private scopes: string[] = []
-  ) {}
+    private scopes: string[] = [],
+    cache?: TokenCache
+  ) {
+    this.cache = cache ?? new MemoryTokenCache()
+    this.cacheKey = hashKey({
+      strategy: 'oauth2-client-credentials',
+      tokenUrl: this.tokenUrl,
+      clientId: this.clientId,
+      scopes: this.scopes,
+    })
+  }
 
   async apply(_url: URL, init: RequestInit): Promise<RequestInit> {
     const token = await this.getToken()
@@ -73,7 +84,7 @@ export class OAuth2ClientCredentials implements ResolvedAuth {
   }
 
   async refresh(_url: URL, init: RequestInit): Promise<RequestInit> {
-    this.tokenCache = null
+    await this.cache.clear(this.cacheKey)
     const token = await this.getToken()
     const headers = new Headers(init.headers)
     headers.set('Authorization', `Bearer ${token}`)
@@ -81,8 +92,9 @@ export class OAuth2ClientCredentials implements ResolvedAuth {
   }
 
   private async getToken(): Promise<string> {
-    if (this.tokenCache && Date.now() < this.tokenCache.expiresAt) {
-      return this.tokenCache.token
+    const cached = await this.cache.read(this.cacheKey)
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.token
     }
 
     if (this.pendingRefresh) {
@@ -136,26 +148,31 @@ export class OAuth2ClientCredentials implements ResolvedAuth {
     const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 3600
     const bufferSeconds = Math.min(60, expiresIn * 0.1)
 
-    this.tokenCache = {
+    await this.cache.write(this.cacheKey, {
       token: data.access_token,
       expiresAt: Date.now() + (expiresIn - bufferSeconds) * 1000,
-    }
+    })
 
     return data.access_token
   }
 }
 
-type TokenExchangeCache = {
-  token: string
-  tokenType?: string
-  expiresAt: number
-}
+type TokenExchangeCache = TokenCacheEntry
 
 export class TokenExchangeAuth implements ResolvedAuth {
-  private tokenCache: TokenExchangeCache | null = null
+  private readonly cache: TokenCache
+  private readonly cacheKey: string
   private pendingRefresh: Promise<TokenExchangeCache> | null = null
 
-  constructor(private config: TokenExchangeAuthConfig) {}
+  constructor(private config: TokenExchangeAuthConfig, cache?: TokenCache) {
+    this.cache = cache ?? new MemoryTokenCache()
+    this.cacheKey = hashKey({
+      strategy: 'token-exchange',
+      tokenUrl: this.config.tokenUrl,
+      fields: Object.keys(this.config.request?.fields ?? {}),
+      apply: this.config.apply?.location ?? 'header',
+    })
+  }
 
   async apply(url: URL, init: RequestInit): Promise<RequestInit> {
     const token = await this.getToken()
@@ -163,14 +180,15 @@ export class TokenExchangeAuth implements ResolvedAuth {
   }
 
   async refresh(url: URL, init: RequestInit): Promise<RequestInit> {
-    this.tokenCache = null
+    await this.cache.clear(this.cacheKey)
     const token = await this.getToken()
     return applyTokenValue(url, init, token, this.config.apply)
   }
 
   private async getToken(): Promise<TokenExchangeCache> {
-    if (this.tokenCache && Date.now() < this.tokenCache.expiresAt) {
-      return this.tokenCache
+    const cached = await this.cache.read(this.cacheKey)
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached
     }
 
     if (this.pendingRefresh) {
@@ -245,13 +263,13 @@ export class TokenExchangeAuth implements ResolvedAuth {
       ? normalizeSchemeName(tokenTypeValue)
       : undefined
 
-    const token = {
+    const token: TokenExchangeCache = {
       token: tokenValue,
       tokenType,
       expiresAt: resolveTokenExpiry(data, this.config),
     }
 
-    this.tokenCache = token
+    await this.cache.write(this.cacheKey, token)
     return token
   }
 }

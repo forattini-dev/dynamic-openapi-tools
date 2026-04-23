@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from 'openapi-types'
 import type { AuthConfig, ResolvedAuth } from './types.js'
+import { resolveTokenCache } from './cache.js'
 import {
   BearerAuth,
   ApiKeyAuth,
@@ -41,19 +42,22 @@ export function resolveAuth(
     strategies.push(new BasicAuth(config.basicAuth.username, config.basicAuth.password))
   }
 
+  const cache = resolveTokenCache(config?.cache)
+
   if (config?.oauth2) {
     strategies.push(
       new OAuth2ClientCredentials(
         config.oauth2.clientId,
         config.oauth2.clientSecret,
         config.oauth2.tokenUrl,
-        config.oauth2.scopes
+        config.oauth2.scopes,
+        cache
       )
     )
   }
 
   if (config?.tokenExchange) {
-    strategies.push(new TokenExchangeAuth(config.tokenExchange))
+    strategies.push(new TokenExchangeAuth(config.tokenExchange, cache))
   }
 
   if (strategies.length > 0) {
